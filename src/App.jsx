@@ -5,7 +5,9 @@ import {
   signInWithEmailAndPassword,
   updateProfile,
   onAuthStateChanged,
-  signOut
+  signOut,
+  GoogleAuthProvider,
+  signInWithPopup
 } from "firebase/auth";
 
 import {
@@ -22,7 +24,6 @@ import {
 import { auth, db } from "./firebase";
 import "./App.css";
 
-
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -38,9 +39,11 @@ function App() {
 
   if (loading) {
     return (
-      <div className="auth-loading">
-        <div className="loading-logo">✦</div>
-        <h2>StudyFlow</h2>
+      <div className="loading-screen">
+        <div className="loading-logo">
+          <img src="/images/logo.png" alt="StudyNest logo" />
+        </div>
+        <h2>StudyNest</h2>
         <p>Loading your workspace...</p>
       </div>
     );
@@ -50,301 +53,317 @@ function App() {
     return <AuthPage />;
   }
 
-  return <StudyFlow user={user} />;
+  return <StudyNest user={user} />;
 }
-
-
-/* =====================================================
-   AUTHENTICATION
-===================================================== */
 
 function AuthPage() {
   const [mode, setMode] = useState("login");
-
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(event) {
-    event.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
     setError("");
     setMessage("");
     setLoading(true);
 
     try {
-      if (mode === "signup") {
-        if (name.trim() === "") {
-          throw new Error("Please enter your name.");
+      if (mode === "login") {
+        await signInWithEmailAndPassword(
+          auth,
+          email.trim(),
+          password
+        );
+      } else {
+        if (!name.trim()) {
+          setError("Please enter your name.");
+          setLoading(false);
+          return;
         }
 
         const result = await createUserWithEmailAndPassword(
           auth,
-          email,
+          email.trim(),
           password
         );
 
         await updateProfile(result.user, {
-          displayName: name
+          displayName: name.trim()
         });
 
-        setMessage("Your StudyFlow account has been created!");
-      } else {
-        await signInWithEmailAndPassword(
-          auth,
-          email,
-          password
-        );
+        setMessage("Account created successfully!");
       }
     } catch (err) {
-      if (err.code === "auth/email-already-in-use") {
-        setError("This email is already registered.");
-      } else if (err.code === "auth/invalid-email") {
-        setError("Please enter a valid email address.");
+      if (err.code === "auth/invalid-credential") {
+        setError("Invalid email or password.");
+      } else if (err.code === "auth/email-already-in-use") {
+        setError("An account already exists with this email.");
       } else if (err.code === "auth/weak-password") {
         setError("Password should be at least 6 characters.");
-      } else if (
-        err.code === "auth/invalid-credential" ||
-        err.code === "auth/wrong-password" ||
-        err.code === "auth/user-not-found"
-      ) {
-        setError("Incorrect email or password.");
+      } else if (err.code === "auth/invalid-email") {
+        setError("Please enter a valid email address.");
       } else {
         setError(err.message);
       }
     }
 
     setLoading(false);
-  }
+  };
 
-  function switchMode() {
-    setMode(mode === "login" ? "signup" : "login");
+  const handleGoogleLogin = async () => {
     setError("");
     setMessage("");
-  }
+    setLoading(true);
+
+    try {
+      const provider = new GoogleAuthProvider();
+
+      await signInWithPopup(auth, provider);
+    } catch (err) {
+      if (err.code === "auth/popup-closed-by-user") {
+        setError("Google sign-in was cancelled.");
+      } else if (err.code === "auth/popup-blocked") {
+        setError("Your browser blocked the Google sign-in window.");
+      } else if (
+        err.code === "auth/account-exists-with-different-credential"
+      ) {
+        setError(
+          "An account already exists with this email using another sign-in method."
+        );
+      } else if (err.code === "auth/network-request-failed") {
+        setError(
+          "Network error. Please check your internet connection."
+        );
+      } else {
+        setError(err.message);
+      }
+    }
+
+    setLoading(false);
+  };
 
   return (
     <div className="auth-page">
-
       <div className="auth-left">
-
         <div className="auth-brand">
-          <div className="brand-icon">✦</div>
+          <div className="auth-logo">
+            <img
+              src="images\logo.png"
+              alt="StudyNest logo"
+              className="logo"
+            />
+          </div>
 
           <div>
-            <strong>StudyFlow</strong>
-            <span>Student productivity</span>
+            <h1>StudyNest</h1>
+            <p>Student Planner</p>
           </div>
         </div>
 
-        <div className="auth-content">
+        <div className="auth-hero">
+          <span className="auth-tag">YOUR PERSONAL STUDY SPACE</span>
 
-          <p className="eyebrow">
-            YOUR PERSONAL WORKSPACE
-          </p>
-
-          <h1>
-            Plan smarter.
+          <h2>
+            Plan your work.
             <br />
-            <span>Study better.</span>
-          </h1>
+            <span>Focus on what matters.</span>
+          </h2>
 
-          <p className="auth-description">
-            Organize your tasks, stay focused and track
-            your progress — all in one simple workspace.
+          <p>
+            StudyNest helps you organize your tasks, stay focused,
+            track your progress, and make your study days easier.
           </p>
 
           <div className="auth-features">
+            <div className="auth-feature">
+              <div className="feature-icon">✓</div>
 
-            <div>
-              <span>✓</span>
-              <p>Manage your daily tasks</p>
+              <div>
+                <strong>Organize your tasks</strong>
+                <span>Keep your daily work in one place.</span>
+              </div>
             </div>
 
-            <div>
-              <span>◷</span>
-              <p>Focus with study sessions</p>
+            <div className="auth-feature">
+              <div className="feature-icon">◷</div>
+
+              <div>
+                <strong>Stay focused</strong>
+                <span>Use the focus timer to study without distractions.</span>
+              </div>
             </div>
 
-            <div>
-              <span>↗</span>
-              <p>Track your progress</p>
-            </div>
+            <div className="auth-feature">
+              <div className="feature-icon">↗</div>
 
+              <div>
+                <strong>Track your progress</strong>
+                <span>See how much you have completed.</span>
+              </div>
+            </div>
           </div>
-
         </div>
 
-        <div className="auth-footer">
-          StudyFlow · Built for students
+        <div className="auth-left-footer">
+          <span>StudyNest</span>
+          <span>•</span>
+          <span>Student Productivity</span>
         </div>
-
       </div>
 
-
       <div className="auth-right">
+        <div className="auth-brand-mobile">
+          <div className="auth-mobile-logo">
+            <img
+              src="/images/logo.png"
+              alt="StudyNest logo"
+              className="logo"
+            />
+          </div>
+
+          <div>
+            <h1>StudyNest</h1>
+            <p>Student Planner</p>
+          </div>
+        </div>
 
         <div className="auth-card">
-
-          <div className="auth-card-heading">
-
-            <div className="mobile-auth-logo">
-              ✦
-            </div>
-
+          <div className="auth-card-header">
             <h2>
               {mode === "login"
-                ? "Welcome back"
+                ? "Welcome back!"
                 : "Create your account"}
             </h2>
 
             <p>
               {mode === "login"
-                ? "Log in to continue to your workspace."
-                : "Start organizing your study life today."}
+                ? "Sign in to continue to your workspace."
+                : "Create your StudyNest account and get organized."}
             </p>
-
           </div>
 
+          {error && (
+            <div className="auth-message error">
+              {error}
+            </div>
+          )}
+
+          {message && (
+            <div className="auth-message success">
+              {message}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit}>
-
             {mode === "signup" && (
               <div className="form-group">
-
                 <label>Your name</label>
 
                 <input
                   type="text"
                   placeholder="Enter your name"
                   value={name}
-                  onChange={(event) =>
-                    setName(event.target.value)
-                  }
+                  onChange={(e) => setName(e.target.value)}
                 />
-
               </div>
             )}
 
-
             <div className="form-group">
-
               <label>Email address</label>
 
               <input
                 type="email"
                 placeholder="you@example.com"
                 value={email}
-                onChange={(event) =>
-                  setEmail(event.target.value)
-                }
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
-
             </div>
 
-
             <div className="form-group">
-
               <label>Password</label>
 
               <input
                 type="password"
                 placeholder="Enter your password"
                 value={password}
-                onChange={(event) =>
-                  setPassword(event.target.value)
-                }
+                onChange={(e) => setPassword(e.target.value)}
                 required
               />
-
             </div>
 
-
-            {error && (
-              <div className="auth-error">
-                {error}
-              </div>
-            )}
-
-            {message && (
-              <div className="auth-success">
-                {message}
-              </div>
-            )}
-
-
             <button
-              className="auth-submit"
               type="submit"
+              className="auth-submit"
               disabled={loading}
             >
               {loading
                 ? "Please wait..."
                 : mode === "login"
-                ? "Log in"
-                : "Create account"}
+                ? "Sign In"
+                : "Create Account"}
             </button>
-
           </form>
 
+          <div className="auth-divider">
+            <span>OR</span>
+          </div>
+
+          <button
+            className="google-btn"
+            onClick={handleGoogleLogin}
+            disabled={loading}
+          >
+            <span className="google-icon">G</span>
+            Continue with Google
+          </button>
 
           <div className="auth-switch">
-
             <span>
               {mode === "login"
                 ? "Don't have an account?"
                 : "Already have an account?"}
             </span>
 
-            <button onClick={switchMode}>
-              {mode === "login"
-                ? "Create one"
-                : "Log in"}
+            <button
+              onClick={() => {
+                setMode(mode === "login" ? "signup" : "login");
+                setError("");
+                setMessage("");
+              }}
+            >
+              {mode === "login" ? "Create one" : "Sign in"}
             </button>
-
           </div>
-
         </div>
-
       </div>
-
     </div>
   );
 }
 
-
-/* =====================================================
-   MAIN APP
-===================================================== */
-
-function StudyFlow({ user }) {
+function StudyNest({ user }) {
   const [activePage, setActivePage] = useState("Dashboard");
 
   const [tasks, setTasks] = useState([]);
 
   const [taskTitle, setTaskTitle] = useState("");
-  const [subject, setSubject] = useState("Study");
-  const [priority, setPriority] = useState("Medium");
-  const [dueDate, setDueDate] = useState("");
+  const [taskSubject, setTaskSubject] = useState("Study");
+  const [taskPriority, setTaskPriority] = useState("Medium");
+  const [taskDate, setTaskDate] = useState("");
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
 
-  const [seconds, setSeconds] = useState(25 * 60);
+  const [timer, setTimer] = useState(25 * 60);
   const [timerRunning, setTimerRunning] = useState(false);
   const [focusSessions, setFocusSessions] = useState(0);
 
-  const [taskLoading, setTaskLoading] = useState(true);
-
-
-  /* -----------------------------
-     FIRESTORE TASKS
-  ----------------------------- */
+  const [taskLoading, setTaskLoading] = useState(false);
 
   useEffect(() => {
     const tasksQuery = query(
@@ -355,419 +374,354 @@ function StudyFlow({ user }) {
     const unsubscribe = onSnapshot(
       tasksQuery,
       (snapshot) => {
-        const loadedTasks = snapshot.docs.map((task) => ({
-          id: task.id,
-          ...task.data()
+        const loadedTasks = snapshot.docs.map((item) => ({
+          id: item.id,
+          ...item.data()
         }));
 
+        loadedTasks.sort((a, b) => {
+          const first = a.createdAt || 0;
+          const second = b.createdAt || 0;
+
+          return second - first;
+        });
+
         setTasks(loadedTasks);
-        setTaskLoading(false);
       },
       (error) => {
-        console.error(error);
-        setTaskLoading(false);
+        console.error("Error loading tasks:", error);
       }
     );
 
     return () => unsubscribe();
   }, [user.uid]);
 
-
-  /* -----------------------------
-     FOCUS TIMER
-  ----------------------------- */
-
   useEffect(() => {
-    let timer;
-
-    if (timerRunning && seconds > 0) {
-      timer = setInterval(() => {
-        setSeconds((current) => current - 1);
-      }, 1000);
-    }
-
-    if (seconds === 0 && timerRunning) {
-      setTimerRunning(false);
-      setFocusSessions((current) => current + 1);
-    }
-
-    return () => clearInterval(timer);
-  }, [timerRunning, seconds]);
-
-
-  /* -----------------------------
-     TASK FUNCTIONS
-  ----------------------------- */
-
-  async function addTask() {
-    if (taskTitle.trim() === "") {
+    if (!timerRunning) {
       return;
     }
 
+    const interval = setInterval(() => {
+      setTimer((current) => {
+        if (current <= 1) {
+          clearInterval(interval);
+          setTimerRunning(false);
+          setFocusSessions((value) => value + 1);
+
+          return 25 * 60;
+        }
+
+        return current - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [timerRunning]);
+
+  const addTask = async (e) => {
+    e.preventDefault();
+
+    if (!taskTitle.trim()) {
+      return;
+    }
+
+    setTaskLoading(true);
+
     try {
       await addDoc(collection(db, "tasks"), {
-        userId: user.uid,
-        title: taskTitle,
-        subject: subject,
-        priority: priority,
-        dueDate: dueDate || "No date",
+        title: taskTitle.trim(),
+        subject: taskSubject,
+        priority: taskPriority,
+        dueDate: taskDate,
         completed: false,
-        createdAt: new Date().toISOString()
+        userId: user.uid,
+        createdAt: Date.now()
       });
 
       setTaskTitle("");
-      setSubject("Study");
-      setPriority("Medium");
-      setDueDate("");
+      setTaskSubject("Study");
+      setTaskPriority("Medium");
+      setTaskDate("");
     } catch (error) {
-      console.error(error);
-      alert("Could not add the task.");
+      console.error("Error adding task:", error);
     }
-  }
 
+    setTaskLoading(false);
+  };
 
-  async function toggleTask(id, completed) {
+  const toggleTask = async (task) => {
     try {
-      await updateDoc(doc(db, "tasks", id), {
-        completed: !completed
+      await updateDoc(doc(db, "tasks", task.id), {
+        completed: !task.completed
       });
     } catch (error) {
-      console.error(error);
+      console.error("Error updating task:", error);
     }
-  }
+  };
 
-
-  async function deleteTask(id) {
+  const deleteTask = async (id) => {
     try {
       await deleteDoc(doc(db, "tasks", id));
     } catch (error) {
-      console.error(error);
+      console.error("Error deleting task:", error);
     }
-  }
+  };
 
-
-  async function clearCompleted() {
-    const completed = tasks.filter(
-      (task) => task.completed
-    );
+  const clearCompleted = async () => {
+    const completedTasks = tasks.filter((task) => task.completed);
 
     try {
-      for (const task of completed) {
-        await deleteDoc(
-          doc(db, "tasks", task.id)
-        );
+      for (const task of completedTasks) {
+        await deleteDoc(doc(db, "tasks", task.id));
       }
     } catch (error) {
-      console.error(error);
+      console.error("Error clearing completed tasks:", error);
     }
-  }
+  };
 
-
-  async function logout() {
-    await signOut(auth);
-  }
-
-
-  /* -----------------------------
-     FILTER TASKS
-  ----------------------------- */
-
-  function getFilteredTasks() {
-    let result = [...tasks];
-
-    if (filter === "Completed") {
-      result = result.filter(
-        (task) => task.completed
-      );
+  const logout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Logout error:", error);
     }
-
-    if (filter === "Pending") {
-      result = result.filter(
-        (task) => !task.completed
-      );
-    }
-
-    if (filter === "High") {
-      result = result.filter(
-        (task) =>
-          task.priority === "High" &&
-          !task.completed
-      );
-    }
-
-    if (search.trim() !== "") {
-      result = result.filter((task) => {
-        const title = task.title || "";
-        const taskSubject = task.subject || "";
-
-        return (
-          title
-            .toLowerCase()
-            .includes(search.toLowerCase()) ||
-          taskSubject
-            .toLowerCase()
-            .includes(search.toLowerCase())
-        );
-      });
-    }
-
-    return result;
-  }
-
-
-  /* -----------------------------
-     STATISTICS
-  ----------------------------- */
+  };
 
   const completedTasks = tasks.filter(
     (task) => task.completed
   ).length;
 
-  const pendingTasks =
-    tasks.length - completedTasks;
-
-  const highPriority = tasks.filter(
-    (task) =>
-      task.priority === "High" &&
-      !task.completed
+  const pendingTasks = tasks.filter(
+    (task) => !task.completed
   ).length;
 
-  let progress = 0;
+  const highPriorityTasks = tasks.filter(
+    (task) =>
+      !task.completed &&
+      task.priority &&
+      task.priority.toLowerCase() === "high"
+  ).length;
 
-  if (tasks.length > 0) {
-    progress = Math.round(
-      (completedTasks / tasks.length) * 100
-    );
-  }
+  const progress =
+    tasks.length === 0
+      ? 0
+      : Math.round((completedTasks / tasks.length) * 100);
 
-
-  /* -----------------------------
-     TIMER DISPLAY
-  ----------------------------- */
-
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-
-  const formattedTime =
-    String(minutes).padStart(2, "0") +
-    ":" +
-    String(remainingSeconds).padStart(2, "0");
-
+  const today = new Date().toISOString().split("T")[0];
 
   const todayTasks = tasks.filter(
-    (task) =>
-      task.dueDate === "Today" &&
-      !task.completed
+    (task) => task.dueDate === today
   );
 
+  const filteredTasks = tasks.filter((task) => {
+    const matchesSearch = task.title
+      .toLowerCase()
+      .includes(search.toLowerCase());
 
-  function showPage(page) {
+    let matchesFilter = true;
+
+    if (filter === "Pending") {
+      matchesFilter = !task.completed;
+    }
+
+    if (filter === "Completed") {
+      matchesFilter = task.completed;
+    }
+
+    if (filter === "High Priority") {
+      matchesFilter =
+        !task.completed &&
+        task.priority &&
+        task.priority.toLowerCase() === "high";
+    }
+
+    return matchesSearch && matchesFilter;
+  });
+
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60)
+      .toString()
+      .padStart(2, "0");
+
+    const remainingSeconds = (seconds % 60)
+      .toString()
+      .padStart(2, "0");
+
+    return `${minutes}:${remainingSeconds}`;
+  };
+
+  const resetTimer = () => {
+    setTimerRunning(false);
+    setTimer(25 * 60);
+  };
+
+  const goTo = (page) => {
     setActivePage(page);
-  }
-
+  };
 
   return (
     <div className="app">
-
-      {/* SIDEBAR */}
-
       <aside className="sidebar">
-
-        <div className="brand">
-
-          <div className="brand-icon">
-            ✦
-          </div>
-
-          <div>
-            <strong>StudyFlow</strong>
-            <span>Student productivity</span>
-          </div>
-
-        </div>
-
-
-        <nav>
-
-          <NavItem
-            icon="⌂"
-            label="Dashboard"
-            activePage={activePage}
-            showPage={showPage}
-          />
-
-          <NavItem
-            icon="✓"
-            label="My Tasks"
-            activePage={activePage}
-            showPage={showPage}
-          />
-
-          <NavItem
-            icon="◷"
-            label="Focus"
-            activePage={activePage}
-            showPage={showPage}
-          />
-
-          <NavItem
-            icon="↗"
-            label="Progress"
-            activePage={activePage}
-            showPage={showPage}
-          />
-
-          <NavItem
-            icon="?"
-            label="About"
-            activePage={activePage}
-            showPage={showPage}
-          />
-
-        </nav>
-
-
-        <div className="sidebar-footer">
-
-          <div className="sidebar-tip">
-
-            <span>✦</span>
-
-            <div>
-              <strong>Study tip</strong>
-
-              <p>
-                Focus on progress,
-                not perfection.
-              </p>
+        <div className="sidebar-top">
+          <div className="brand">
+            <div className="brand-icon">
+              <img
+                src="images\logo.png"
+                alt="StudyNest logo"
+                className="logo"
+              />
             </div>
 
+            <div>
+              <h2>StudyNest</h2>
+              <span>Student Planner</span>
+            </div>
           </div>
 
-        </div>
-
-      </aside>
-
-
-      {/* MAIN */}
-
-      <main className="main">
-
-        <header className="topbar">
-
-          <div className="mobile-brand">
-            <span>✦</span>
-            StudyFlow
-          </div>
-
-          <div className="top-date">
-            {new Date().toLocaleDateString(
-              "en-US",
-              {
-                weekday: "long",
-                month: "long",
-                day: "numeric"
-              }
-            )}
-          </div>
-
-
-          <div className="profile">
-
-            <div className="profile-avatar">
-              {(
-                user.displayName ||
+          <div className="user-profile">
+            <div className="user-avatar">
+              {(user.displayName ||
                 user.email ||
-                "S"
-              )
+                "U")
                 .charAt(0)
                 .toUpperCase()}
             </div>
 
-            <div>
+            <div className="user-info">
               <strong>
                 {user.displayName || "Student"}
               </strong>
 
-              <span>
-                My workspace
-              </span>
+              <span>{user.email}</span>
             </div>
-
-            <button
-              className="logout-button"
-              onClick={logout}
-            >
-              Logout
-            </button>
-
           </div>
 
+          <nav className="sidebar-nav">
+            <button
+              className={`nav-item ${
+                activePage === "Dashboard" ? "active" : ""
+              }`}
+              onClick={() => goTo("Dashboard")}
+            >
+              <span className="nav-icon">⌂</span>
+              Dashboard
+            </button>
+
+            <button
+              className={`nav-item ${
+                activePage === "My Tasks" ? "active" : ""
+              }`}
+              onClick={() => goTo("My Tasks")}
+            >
+              <span className="nav-icon">✓</span>
+              My Tasks
+            </button>
+
+            <button
+              className={`nav-item ${
+                activePage === "Focus" ? "active" : ""
+              }`}
+              onClick={() => goTo("Focus")}
+            >
+              <span className="nav-icon">◷</span>
+              Focus
+            </button>
+
+            <button
+              className={`nav-item ${
+                activePage === "Progress" ? "active" : ""
+              }`}
+              onClick={() => goTo("Progress")}
+            >
+              <span className="nav-icon">↗</span>
+              Progress
+            </button>
+
+            <button
+              className={`nav-item ${
+                activePage === "About" ? "active" : ""
+              }`}
+              onClick={() => goTo("About")}
+            >
+              <span className="nav-icon">i</span>
+              About
+            </button>
+          </nav>
+        </div>
+
+        <div className="sidebar-bottom">
+          <button className="logout-btn" onClick={logout}>
+            <span>↪</span>
+            Logout
+          </button>
+        </div>
+      </aside>
+
+      <main className="main">
+        <header className="topbar">
+          <div className="topbar-page">
+            <span className="topbar-label">
+              {activePage}
+            </span>
+          </div>
+
+          <div className="topbar-right">
+            <span className="topbar-date">
+              {new Date().toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "long",
+                day: "numeric"
+              })}
+            </span>
+          </div>
         </header>
-
-
-        {/* DASHBOARD */}
 
         {activePage === "Dashboard" && (
           <Dashboard
             user={user}
             tasks={tasks}
+            todayTasks={todayTasks}
             completedTasks={completedTasks}
             pendingTasks={pendingTasks}
-            highPriority={highPriority}
+            highPriorityTasks={highPriorityTasks}
             progress={progress}
-            todayTasks={todayTasks}
-            toggleTask={toggleTask}
-            deleteTask={deleteTask}
-            showPage={showPage}
-            taskLoading={taskLoading}
+            goTo={goTo}
           />
         )}
-
-
-        {/* TASKS */}
 
         {activePage === "My Tasks" && (
           <TasksPage
             taskTitle={taskTitle}
             setTaskTitle={setTaskTitle}
-            subject={subject}
-            setSubject={setSubject}
-            priority={priority}
-            setPriority={setPriority}
-            dueDate={dueDate}
-            setDueDate={setDueDate}
+            taskSubject={taskSubject}
+            setTaskSubject={setTaskSubject}
+            taskPriority={taskPriority}
+            setTaskPriority={setTaskPriority}
+            taskDate={taskDate}
+            setTaskDate={setTaskDate}
             addTask={addTask}
-            filter={filter}
-            setFilter={setFilter}
+            taskLoading={taskLoading}
             search={search}
             setSearch={setSearch}
-            getFilteredTasks={getFilteredTasks}
+            filter={filter}
+            setFilter={setFilter}
+            filteredTasks={filteredTasks}
             toggleTask={toggleTask}
             deleteTask={deleteTask}
             clearCompleted={clearCompleted}
-            taskLoading={taskLoading}
           />
         )}
-
-
-        {/* FOCUS */}
 
         {activePage === "Focus" && (
           <FocusPage
-            formattedTime={formattedTime}
+            timer={timer}
             timerRunning={timerRunning}
             setTimerRunning={setTimerRunning}
-            resetTimer={() => {
-              setTimerRunning(false);
-              setSeconds(25 * 60);
-            }}
+            resetTimer={resetTimer}
             focusSessions={focusSessions}
+            formatTime={formatTime}
           />
         )}
-
-
-        {/* PROGRESS */}
 
         {activePage === "Progress" && (
           <ProgressPage
@@ -778,356 +732,238 @@ function StudyFlow({ user }) {
           />
         )}
 
+        {activePage === "About" && <AboutPage />}
 
-        {/* ABOUT */}
-
-        {activePage === "About" && (
-          <AboutPage />
-        )}
-
-
-        <footer>
-          <strong>✦ StudyFlow</strong>
-          <span>Plan smarter. Study better.</span>
+        <footer className="app-footer">
+          <span>StudyNest</span>
+          <span>Your personal student workspace</span>
         </footer>
-
       </main>
-
     </div>
   );
 }
-
-
-/* =====================================================
-   DASHBOARD
-===================================================== */
 
 function Dashboard({
   user,
   tasks,
+  todayTasks,
   completedTasks,
   pendingTasks,
-  highPriority,
+  highPriorityTasks,
   progress,
-  todayTasks,
-  toggleTask,
-  deleteTask,
-  showPage,
-  taskLoading
+  goTo
 }) {
   return (
     <div className="page">
+      <section className="welcome-section">
+        <span className="eyebrow">DASHBOARD</span>
 
-      <div className="welcome">
+        <h1>
+          Welcome back, {user.displayName || "Student"}!
+        </h1>
 
-        <div>
+        <p>
+          Here's a quick look at your study and task progress.
+        </p>
+      </section>
 
-          <p className="eyebrow">
-            YOUR DASHBOARD
-          </p>
+      <section className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon">✓</div>
 
-          <h1>
-            Good to see you,{" "}
-            {user.displayName || "Student"}!
-            <span> ✦</span>
-          </h1>
-
-          <p>
-            Here's a quick look at
-            your productivity today.
-          </p>
-
+          <div className="stat-content">
+            <span>Completed</span>
+            <strong>{completedTasks}</strong>
+            <small>Tasks finished</small>
+          </div>
         </div>
 
-        <button
-          className="primary-button"
-          onClick={() => showPage("My Tasks")}
-        >
-          + New Task
-        </button>
+        <div className="stat-card">
+          <div className="stat-icon">○</div>
 
-      </div>
+          <div className="stat-content">
+            <span>Pending</span>
+            <strong>{pendingTasks}</strong>
+            <small>Tasks remaining</small>
+          </div>
+        </div>
 
+        <div className="stat-card">
+          <div className="stat-icon">!</div>
 
-      <div className="stats-grid">
+          <div className="stat-content">
+            <span>High Priority</span>
+            <strong>{highPriorityTasks}</strong>
+            <small>Needs attention</small>
+          </div>
+        </div>
 
-        <StatCard
-          icon="✓"
-          title="Total Tasks"
-          value={tasks.length}
-          type="blue"
-        />
+        <div className="stat-card">
+          <div className="stat-icon">↗</div>
 
-        <StatCard
-          icon="✓"
-          title="Completed"
-          value={completedTasks}
-          type="green"
-        />
+          <div className="stat-content">
+            <span>Progress</span>
+            <strong>{progress}%</strong>
+            <small>Overall completion</small>
+          </div>
+        </div>
+      </section>
 
-        <StatCard
-          icon="!"
-          title="High Priority"
-          value={highPriority}
-          type="orange"
-        />
-
-        <StatCard
-          icon="↗"
-          title="Progress"
-          value={progress + "%"}
-          type="purple"
-        />
-
-      </div>
-
-
-      <div className="dashboard-grid">
-
-        <div className="panel">
-
-          <div className="panel-header">
-
+      <section className="dashboard-grid">
+        <div className="dashboard-card">
+          <div className="card-heading">
             <div>
-              <p className="eyebrow">
-                TODAY
-              </p>
-
-              <h2>
-                Today's Tasks
-              </h2>
+              <span className="eyebrow">TODAY</span>
+              <h2>Today's Tasks</h2>
             </div>
 
             <button
               className="text-button"
-              onClick={() => showPage("My Tasks")}
+              onClick={() => goTo("My Tasks")}
             >
-              View all →
+              View all
             </button>
-
           </div>
 
-
-          {taskLoading ? (
-            <div className="dashboard-empty">
-              <p>Loading your tasks...</p>
-            </div>
-          ) : todayTasks.length === 0 ? (
-            <div className="dashboard-empty">
-
-              <div>✓</div>
-
-              <h3>
-                Your day is clear!
-              </h3>
-
-              <p>
-                Add a task with
-                "Today" as the date
-                to see it here.
-              </p>
-
+          {todayTasks.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">✓</div>
+              <strong>No tasks for today</strong>
+              <p>Your schedule is clear for today.</p>
             </div>
           ) : (
-            <div className="task-list">
-
-              {todayTasks
-                .slice(0, 4)
-                .map((task) => (
-                  <TaskRow
-                    key={task.id}
-                    task={task}
-                    toggleTask={toggleTask}
-                    deleteTask={deleteTask}
-                  />
-                ))}
-
+            <div className="dashboard-task-list">
+              {todayTasks.slice(0, 5).map((task) => (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  onToggle={() => {}}
+                  onDelete={() => {}}
+                  dashboard
+                />
+              ))}
             </div>
           )}
-
         </div>
 
-
-        <div className="panel progress-panel">
-
-          <div className="panel-header">
-
+        <div className="dashboard-card progress-card">
+          <div className="card-heading">
             <div>
-              <p className="eyebrow">
-                YOUR PROGRESS
-              </p>
-
-              <h2>
-                Overall Progress
-              </h2>
-            </div>
-
-          </div>
-
-
-          <div
-            className="progress-ring"
-            style={{
-              "--progress": progress + "%"
-            }}
-          >
-            <div>
-
-              <strong>
-                {progress}%
-              </strong>
-
-              <span>
-                completed
-              </span>
-
+              <span className="eyebrow">PROGRESS</span>
+              <h2>Task Progress</h2>
             </div>
           </div>
 
-
-          <div className="progress-line">
-
+          <div className="progress-ring-container">
             <div
+              className="progress-ring"
               style={{
-                width: progress + "%"
+                background: `conic-gradient(
+                  #48AE61 ${progress * 3.6}deg,
+                  #EEF8EA ${progress * 3.6}deg
+                )`
               }}
-            ></div>
-
+            >
+              <div className="progress-ring-inner">
+                <strong>{progress}%</strong>
+                <span>completed</span>
+              </div>
+            </div>
           </div>
 
-
-          <div className="progress-stats">
-
+          <div className="progress-summary">
             <div>
               <strong>{completedTasks}</strong>
-              <span>Completed</span>
+              <span>Done</span>
             </div>
 
             <div>
               <strong>{pendingTasks}</strong>
-              <span>Remaining</span>
+              <span>Pending</span>
             </div>
-
           </div>
+        </div>
+      </section>
 
+      <section className="quick-actions">
+        <div className="section-heading">
+          <span className="eyebrow">QUICK ACTIONS</span>
+          <h2>What would you like to do?</h2>
         </div>
 
-      </div>
+        <div className="quick-action-grid">
+          <button
+            className="quick-action"
+            onClick={() => goTo("My Tasks")}
+          >
+            <div className="quick-icon">+</div>
 
+            <div>
+              <strong>Add a task</strong>
+              <span>Create something new to work on.</span>
+            </div>
+          </button>
 
-      <div className="quick-actions">
+          <button
+            className="quick-action"
+            onClick={() => goTo("Focus")}
+          >
+            <div className="quick-icon">◷</div>
 
-        <div
-          className="quick-card"
-          onClick={() => showPage("My Tasks")}
-        >
-          <div>✓</div>
+            <div>
+              <strong>Start focus</strong>
+              <span>Begin a focused study session.</span>
+            </div>
+          </button>
 
-          <h3>
-            Manage Tasks
-          </h3>
+          <button
+            className="quick-action"
+            onClick={() => goTo("Progress")}
+          >
+            <div className="quick-icon">↗</div>
 
-          <p>
-            Add and organize
-            your work.
-          </p>
-
+            <div>
+              <strong>View progress</strong>
+              <span>Check your current progress.</span>
+            </div>
+          </button>
         </div>
-
-
-        <div
-          className="quick-card"
-          onClick={() => showPage("Focus")}
-        >
-          <div>◷</div>
-
-          <h3>
-            Start Focusing
-          </h3>
-
-          <p>
-            Begin a focused
-            study session.
-          </p>
-
-        </div>
-
-
-        <div
-          className="quick-card"
-          onClick={() => showPage("Progress")}
-        >
-          <div>↗</div>
-
-          <h3>
-            View Progress
-          </h3>
-
-          <p>
-            See your productivity
-            statistics.
-          </p>
-
-        </div>
-
-      </div>
-
+      </section>
     </div>
   );
 }
 
-
-/* =====================================================
-   TASKS PAGE
-===================================================== */
-
 function TasksPage({
   taskTitle,
   setTaskTitle,
-  subject,
-  setSubject,
-  priority,
-  setPriority,
-  dueDate,
-  setDueDate,
+  taskSubject,
+  setTaskSubject,
+  taskPriority,
+  setTaskPriority,
+  taskDate,
+  setTaskDate,
   addTask,
-  filter,
-  setFilter,
+  taskLoading,
   search,
   setSearch,
-  getFilteredTasks,
+  filter,
+  setFilter,
+  filteredTasks,
   toggleTask,
   deleteTask,
-  clearCompleted,
-  taskLoading
+  clearCompleted
 }) {
-  const filters = [
-    "All",
-    "Pending",
-    "Completed",
-    "High"
-  ];
-
   return (
     <div className="page">
-
       <div className="page-heading">
-
         <div>
+          <span className="eyebrow">MY TASKS</span>
 
-          <p className="eyebrow">
-            PRODUCTIVITY
-          </p>
-
-          <h1>
-            My Tasks
-          </h1>
+          <h1>Stay organized.</h1>
 
           <p>
-            Keep track of everything
-            you need to accomplish.
+            Add, manage, and complete your study tasks.
           </p>
-
         </div>
 
         <button
@@ -1136,321 +972,303 @@ function TasksPage({
         >
           Clear completed
         </button>
-
       </div>
 
+      <div className="add-task-card">
+        <form className="task-form" onSubmit={addTask}>
+          <div className="task-input-main">
+            <label>Task title</label>
 
-      <div className="add-task-panel">
-
-        <input
-          value={taskTitle}
-          onChange={(event) =>
-            setTaskTitle(event.target.value)
-          }
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              addTask();
-            }
-          }}
-          placeholder="What do you need to accomplish?"
-        />
-
-
-        <div className="task-form">
-
-          <select
-            value={subject}
-            onChange={(event) =>
-              setSubject(event.target.value)
-            }
-          >
-            <option>Study</option>
-            <option>Mathematics</option>
-            <option>Science</option>
-            <option>English</option>
-            <option>Coding</option>
-            <option>Personal</option>
-          </select>
-
-
-          <select
-            value={priority}
-            onChange={(event) =>
-              setPriority(event.target.value)
-            }
-          >
-            <option>High</option>
-            <option>Medium</option>
-            <option>Low</option>
-          </select>
-
-
-          <select
-            value={dueDate}
-            onChange={(event) =>
-              setDueDate(event.target.value)
-            }
-          >
-            <option value="">
-              Due date
-            </option>
-
-            <option value="Today">
-              Today
-            </option>
-
-            <option value="Tomorrow">
-              Tomorrow
-            </option>
-
-            <option value="This week">
-              This week
-            </option>
-          </select>
-
-
-          <button
-            className="primary-button"
-            onClick={addTask}
-          >
-            + Add Task
-          </button>
-
-        </div>
-
-      </div>
-
-
-      <div className="task-controls">
-
-        <div className="filters">
-
-          {filters.map((option) => (
-            <button
-              key={option}
-              className={
-                filter === option
-                  ? "filter-active"
-                  : ""
-              }
-              onClick={() =>
-                setFilter(option)
-              }
-            >
-              {option}
-            </button>
-          ))}
-
-        </div>
-
-
-        <div className="search">
-
-          <span>⌕</span>
-
-          <input
-            value={search}
-            onChange={(event) =>
-              setSearch(event.target.value)
-            }
-            placeholder="Search tasks..."
-          />
-
-        </div>
-
-      </div>
-
-
-      <div className="full-task-list">
-
-        {taskLoading ? (
-          <div className="large-empty">
-            <h2>
-              Loading your tasks...
-            </h2>
-          </div>
-        ) : getFilteredTasks().length === 0 ? (
-          <div className="large-empty">
-
-            <div>✓</div>
-
-            <h2>
-              No tasks found
-            </h2>
-
-            <p>
-              Add a task to get started.
-            </p>
-
-          </div>
-        ) : (
-          getFilteredTasks().map((task) => (
-            <TaskRow
-              key={task.id}
-              task={task}
-              toggleTask={toggleTask}
-              deleteTask={deleteTask}
+            <input
+              type="text"
+              placeholder="What do you need to get done?"
+              value={taskTitle}
+              onChange={(e) => setTaskTitle(e.target.value)}
             />
-          ))
-        )}
+          </div>
 
+          <div className="task-form-row">
+            <div className="form-group">
+              <label>Subject</label>
+
+              <select
+                value={taskSubject}
+                onChange={(e) =>
+                  setTaskSubject(e.target.value)
+                }
+              >
+                <option>Study</option>
+                <option>Mathematics</option>
+                <option>Science</option>
+                <option>English</option>
+                <option>Coding</option>
+                <option>Personal</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Priority</label>
+
+              <select
+                value={taskPriority}
+                onChange={(e) =>
+                  setTaskPriority(e.target.value)
+                }
+              >
+                <option>Low</option>
+                <option>Medium</option>
+                <option>High</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Due date</label>
+
+              <input
+                type="date"
+                value={taskDate}
+                onChange={(e) =>
+                  setTaskDate(e.target.value)
+                }
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="add-task-button"
+              disabled={taskLoading}
+            >
+              {taskLoading ? "Adding..." : "Add Task"}
+            </button>
+          </div>
+        </form>
       </div>
 
+      <section className="tasks-section">
+        <div className="task-toolbar">
+          <div className="filter-buttons">
+            {[
+              "All",
+              "Pending",
+              "Completed",
+              "High Priority"
+            ].map((item) => (
+              <button
+                key={item}
+                className={`filter-button ${
+                  filter === item ? "active" : ""
+                }`}
+                onClick={() => setFilter(item)}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+
+          <div className="search-box">
+            <span>⌕</span>
+
+            <input
+              type="text"
+              placeholder="Search tasks..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="task-list">
+          {filteredTasks.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">✓</div>
+              <strong>No tasks found</strong>
+              <p>
+                Add a task or change your search/filter.
+              </p>
+            </div>
+          ) : (
+            filteredTasks.map((task) => (
+              <TaskRow
+                key={task.id}
+                task={task}
+                onToggle={() => toggleTask(task)}
+                onDelete={() => deleteTask(task.id)}
+              />
+            ))
+          )}
+        </div>
+      </section>
     </div>
   );
 }
 
+function TaskRow({
+  task,
+  onToggle,
+  onDelete,
+  dashboard = false
+}) {
+  return (
+    <div
+      className={`task-row ${
+        task.completed ? "completed" : ""
+      }`}
+    >
+      <button
+        className={`task-check ${
+          task.completed ? "checked" : ""
+        }`}
+        onClick={onToggle}
+      >
+        {task.completed ? "✓" : ""}
+      </button>
 
-/* =====================================================
-   FOCUS PAGE
-===================================================== */
+      <div className="task-details">
+        <strong>{task.title}</strong>
+
+        <div className="task-meta">
+          <span>{task.subject}</span>
+
+          {task.dueDate && (
+            <span>
+              Due{" "}
+              {new Date(
+                `${task.dueDate}T00:00:00`
+              ).toLocaleDateString()}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {!dashboard && (
+        <>
+          <span
+            className={`priority priority-${(
+              task.priority || "medium"
+            ).toLowerCase()}`}
+          >
+            {task.priority || "Medium"}
+          </span>
+
+          <button
+            className="delete-task"
+            onClick={onDelete}
+            title="Delete task"
+          >
+            ×
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
 
 function FocusPage({
-  formattedTime,
+  timer,
   timerRunning,
   setTimerRunning,
   resetTimer,
-  focusSessions
+  focusSessions,
+  formatTime
 }) {
   return (
     <div className="page">
-
       <div className="page-heading">
-
         <div>
+          <span className="eyebrow">FOCUS</span>
 
-          <p className="eyebrow">
-            DEEP WORK
-          </p>
-
-          <h1>
-            Focus Timer
-          </h1>
+          <h1>Time to focus.</h1>
 
           <p>
-            Give one task your
-            full attention.
+            Give yourself 25 minutes of distraction-free study.
           </p>
-
         </div>
-
       </div>
 
-
       <div className="focus-layout">
+        <div className="focus-card">
+          <span className="focus-label">
+            FOCUS SESSION
+          </span>
 
-        <div className="focus-main">
-
-          <div className="focus-label">
-            {timerRunning
-              ? "FOCUS SESSION IN PROGRESS"
-              : "READY TO FOCUS"}
+          <div className="focus-timer">
+            {formatTime(timer)}
           </div>
 
-
-          <div className="big-timer">
-            {formattedTime}
-          </div>
-
-
-          <p className="focus-message">
-            {timerRunning
-              ? "Stay focused. You've got this!"
-              : "Take 25 minutes to work without distractions."}
-          </p>
-
-
-          <div className="timer-actions">
-
+          <div className="focus-controls">
             <button
-              className="primary-button large-button"
+              className="focus-start"
               onClick={() =>
                 setTimerRunning(!timerRunning)
               }
             >
-              {timerRunning
-                ? "Pause Session"
-                : "Start Focus"}
+              {timerRunning ? "Pause" : "Start"}
             </button>
 
-
             <button
-              className="secondary-button large-button"
+              className="focus-reset"
               onClick={resetTimer}
             >
               Reset
             </button>
-
           </div>
 
-
-          <div className="session-count">
-
-            <span>
-              Focus sessions completed
-            </span>
-
-            <strong>
-              {focusSessions}
-            </strong>
-
+          <div className="focus-session">
+            <strong>{focusSessions}</strong>
+            <span>Sessions completed</span>
           </div>
-
         </div>
 
-
-        <div className="focus-tips">
-
-          <p className="eyebrow">
-            FOCUS TIPS
-          </p>
+        <div className="tips-card">
+          <span className="eyebrow">FOCUS TIPS</span>
 
           <h2>
-            Make your session count.
+            Small focused sessions can make studying easier.
           </h2>
-
 
           <div className="tip">
             <span>01</span>
 
-            <p>
-              Choose one task
-              before starting.
-            </p>
-          </div>
+            <div>
+              <strong>Choose one task</strong>
 
+              <p>
+                Focus on one clear task instead of trying to
+                do everything at once.
+              </p>
+            </div>
+          </div>
 
           <div className="tip">
             <span>02</span>
 
-            <p>
-              Put distractions
-              away.
-            </p>
-          </div>
+            <div>
+              <strong>Remove distractions</strong>
 
+              <p>
+                Put away anything that might interrupt your
+                study session.
+              </p>
+            </div>
+          </div>
 
           <div className="tip">
             <span>03</span>
 
-            <p>
-              Take a short break
-              when you're done.
-            </p>
+            <div>
+              <strong>Take a short break</strong>
+
+              <p>
+                Give yourself a little time to rest after a
+                focused session.
+              </p>
+            </div>
           </div>
-
         </div>
-
       </div>
-
     </div>
   );
 }
-
-
-/* =====================================================
-   PROGRESS PAGE
-===================================================== */
 
 function ProgressPage({
   tasks,
@@ -1469,474 +1287,221 @@ function ProgressPage({
 
   return (
     <div className="page">
-
       <div className="page-heading">
-
         <div>
+          <span className="eyebrow">PROGRESS</span>
 
-          <p className="eyebrow">
-            ANALYTICS
-          </p>
-
-          <h1>
-            Your Progress
-          </h1>
+          <h1>See how you're doing.</h1>
 
           <p>
-            See how you're doing
-            and keep improving.
+            Your progress is based on the tasks you complete.
           </p>
-
         </div>
-
       </div>
 
+      <section className="progress-overview">
+        <div className="big-progress-card">
+          <span className="eyebrow">OVERALL PROGRESS</span>
 
-      <div className="progress-overview">
-
-        <div className="progress-big-card">
-
-          <p className="eyebrow">
-            OVERALL COMPLETION
-          </p>
-
-          <strong>
-            {progress}%
-          </strong>
+          <h2>{progress}%</h2>
 
           <p>
-            You've completed{" "}
-            {completedTasks} out of{" "}
-            {tasks.length} tasks.
+            {completedTasks} of {tasks.length} tasks completed
           </p>
 
-
-          <div className="large-progress">
-
+          <div className="progress-bar-large">
             <div
               style={{
-                width: progress + "%"
+                width: `${progress}%`
               }}
             ></div>
-
           </div>
-
         </div>
 
-
-        <div className="mini-stat">
-
-          <span>
-            Completed
-          </span>
-
-          <strong>
-            {completedTasks}
-          </strong>
-
-          <small>
-            tasks finished
-          </small>
-
+        <div className="progress-number-card">
+          <strong>{completedTasks}</strong>
+          <span>Completed</span>
         </div>
 
-
-        <div className="mini-stat">
-
-          <span>
-            Remaining
-          </span>
-
-          <strong>
-            {pendingTasks}
-          </strong>
-
-          <small>
-            tasks to go
-          </small>
-
+        <div className="progress-number-card">
+          <strong>{pendingTasks}</strong>
+          <span>Remaining</span>
         </div>
+      </section>
 
-      </div>
-
-
-      <div className="subject-section">
-
-        <div className="panel-header">
-
-          <div>
-
-            <p className="eyebrow">
-              BY SUBJECT
-            </p>
-
-            <h2>
-              Task Breakdown
-            </h2>
-
-          </div>
-
+      <section className="subject-progress">
+        <div className="section-heading">
+          <span className="eyebrow">SUBJECTS</span>
+          <h2>Task distribution</h2>
         </div>
-
 
         <div className="subject-list">
-
-          {subjects.map((name) => {
-
+          {subjects.map((subject) => {
             const subjectTasks = tasks.filter(
-              (task) => task.subject === name
+              (task) => task.subject === subject
             );
 
-            const completed = subjectTasks.filter(
+            const subjectCompleted = subjectTasks.filter(
               (task) => task.completed
             ).length;
 
-            let percentage = 0;
-
-            if (subjectTasks.length > 0) {
-              percentage = Math.round(
-                (completed / subjectTasks.length) * 100
-              );
-            }
+            const subjectProgress =
+              subjectTasks.length === 0
+                ? 0
+                : Math.round(
+                    (subjectCompleted /
+                      subjectTasks.length) *
+                      100
+                  );
 
             return (
               <div
                 className="subject-row"
-                key={name}
+                key={subject}
               >
-
                 <div className="subject-name">
-
-                  <strong>
-                    {name}
-                  </strong>
+                  <strong>{subject}</strong>
 
                   <span>
-                    {completed}/
-                    {subjectTasks.length}
-                    {" "}completed
+                    {subjectTasks.length}{" "}
+                    {subjectTasks.length === 1
+                      ? "task"
+                      : "tasks"}
                   </span>
-
                 </div>
 
-
-                <div className="subject-progress">
-
-                  <div>
-                    <div
-                      style={{
-                        width: percentage + "%"
-                      }}
-                    ></div>
-                  </div>
-
-                  <strong>
-                    {percentage}%
-                  </strong>
-
+                <div className="subject-progress-bar">
+                  <div
+                    style={{
+                      width: `${subjectProgress}%`
+                    }}
+                  ></div>
                 </div>
 
+                <div className="subject-percent">
+                  {subjectProgress}%
+                </div>
               </div>
             );
           })}
-
         </div>
-
-      </div>
-
+      </section>
     </div>
   );
 }
-
-
-/* =====================================================
-   ABOUT PAGE
-===================================================== */
 
 function AboutPage() {
   return (
     <div className="page">
-
-      <div className="about-hero">
-
-        <div>
-
-          <p className="eyebrow">
-            ABOUT STUDYFLOW
-          </p>
-
-          <h1>
-            A simpler way to
-            organize student life.
-          </h1>
-
-          <p>
-            StudyFlow is a student-focused
-            productivity platform designed
-            to bring tasks, priorities,
-            progress tracking and focused
-            study sessions into one simple
-            workspace.
-          </p>
-
-        </div>
-
-
-        <div className="about-symbol">
-          ✦
-        </div>
-
-      </div>
-
-
-      <div className="feature-grid">
-
-        <Feature
-          icon="✓"
-          title="Task Management"
-          text="Create, organize, prioritize and complete your daily tasks."
-        />
-
-        <Feature
-          icon="↗"
-          title="Progress Tracking"
-          text="Understand your productivity with live completion statistics."
-        />
-
-        <Feature
-          icon="◷"
-          title="Focused Study"
-          text="Use focused sessions to give important work your full attention."
-        />
-
-        <Feature
-          icon="◆"
-          title="Personal Workspace"
-          text="Your tasks belong to your account and are stored securely in the database."
-        />
-
-      </div>
-
-
-      <div className="how-section">
-
-        <p className="eyebrow">
-          HOW IT WORKS
-        </p>
-
-        <h2>
-          Three simple steps.
-        </h2>
-
-
-        <div className="steps">
-
-          <div>
-            <span>01</span>
-
-            <h3>
-              Add
-            </h3>
-
-            <p>
-              Create tasks for school,
-              coding, study or personal
-              goals.
-            </p>
-          </div>
-
-
-          <div>
-            <span>02</span>
-
-            <h3>
-              Focus
-            </h3>
-
-            <p>
-              Choose what matters and
-              work through your priorities.
-            </p>
-          </div>
-
-
-          <div>
-            <span>03</span>
-
-            <h3>
-              Improve
-            </h3>
-
-            <p>
-              Track your progress and
-              build better study habits.
-            </p>
-          </div>
-
-        </div>
-
-      </div>
-
-    </div>
-  );
-}
-
-
-/* =====================================================
-   SMALL COMPONENTS
-===================================================== */
-
-function NavItem({
-  icon,
-  label,
-  activePage,
-  showPage
-}) {
-  return (
-    <button
-      className={
-        activePage === label
-          ? "nav-item active"
-          : "nav-item"
-      }
-      onClick={() => showPage(label)}
-    >
-      <span>{icon}</span>
-      {label}
-    </button>
-  );
-}
-
-
-function StatCard({
-  icon,
-  title,
-  value,
-  type
-}) {
-  return (
-    <div className="stat-card">
-
-      <div className={"stat-icon " + type}>
-        {icon}
-      </div>
-
-      <div>
-
-        <span>
-          {title}
+      <section className="about-hero">
+        <span className="eyebrow">
+          ABOUT STUDYNEST
         </span>
 
-        <strong>
-          {value}
-        </strong>
+        <h1>
+          A simpler way to
+          <br />
+          manage your study life.
+        </h1>
 
-      </div>
+        <p>
+          StudyNest is a personal student productivity
+          workspace designed to help you organize tasks,
+          focus on your work, and keep track of your progress
+          in one simple place.
+        </p>
+      </section>
 
-    </div>
-  );
-}
+      <section className="features-grid">
+        <div className="feature-card">
+          <div className="feature-card-icon">✓</div>
 
+          <h3>Task Management</h3>
 
-function TaskRow({
-  task,
-  toggleTask,
-  deleteTask
-}) {
-  return (
-    <div
-      className={
-        task.completed
-          ? "task-row completed"
-          : "task-row"
-      }
-    >
-
-      <button
-        className="task-check"
-        onClick={() =>
-          toggleTask(
-            task.id,
-            task.completed
-          )
-        }
-      >
-        {task.completed ? "✓" : ""}
-      </button>
-
-
-      <div className="task-details">
-
-        <h3>
-          {task.title}
-        </h3>
-
-
-        <div className="task-meta">
-
-          <span className="subject-tag">
-            {task.subject || "Study"}
-          </span>
-
-
-          <span
-            className={
-              "priority " +
-              (
-                task.priority || "Medium"
-              ).toLowerCase()
-            }
-          >
-            {task.priority || "Medium"}
-          </span>
-
-
-          <span className="due-date">
-            📅 {task.dueDate || "No date"}
-          </span>
-
+          <p>
+            Create tasks, set priorities, add due dates, and
+            keep track of what needs to be completed.
+          </p>
         </div>
 
-      </div>
+        <div className="feature-card">
+          <div className="feature-card-icon">◷</div>
 
+          <h3>Focus Timer</h3>
 
-      <button
-        className="delete-button"
-        onClick={() =>
-          deleteTask(task.id)
-        }
-      >
-        ×
-      </button>
+          <p>
+            Use focused 25-minute sessions to give your study
+            time more structure.
+          </p>
+        </div>
 
+        <div className="feature-card">
+          <div className="feature-card-icon">↗</div>
+
+          <h3>Progress Tracking</h3>
+
+          <p>
+            See your completed and pending tasks and get a
+            simple view of your overall progress.
+          </p>
+        </div>
+
+        <div className="feature-card">
+          <div className="feature-card-icon">☁</div>
+
+          <h3>Your Workspace</h3>
+
+          <p>
+            Your tasks are connected to your own account and
+            stored in Firestore.
+          </p>
+        </div>
+      </section>
+
+      <section className="how-section">
+        <div className="section-heading">
+          <span className="eyebrow">HOW IT WORKS</span>
+
+          <h2>Simple from start to finish.</h2>
+        </div>
+
+        <div className="how-grid">
+          <div className="how-step">
+            <span>01</span>
+
+            <h3>Add your tasks</h3>
+
+            <p>
+              Add schoolwork, coding practice, personal tasks,
+              or anything else you need to remember.
+            </p>
+          </div>
+
+          <div className="how-step">
+            <span>02</span>
+
+            <h3>Work with focus</h3>
+
+            <p>
+              Choose a task and use the focus timer to stay
+              focused on the work in front of you.
+            </p>
+          </div>
+
+          <div className="how-step">
+            <span>03</span>
+
+            <h3>Track your progress</h3>
+
+            <p>
+              Complete your tasks and watch your progress grow
+              over time.
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
-
-
-function Feature({
-  icon,
-  title,
-  text
-}) {
-  return (
-    <div className="feature-card">
-
-      <div className="feature-icon">
-        {icon}
-      </div>
-
-      <h3>
-        {title}
-      </h3>
-
-      <p>
-        {text}
-      </p>
-
-    </div>
-  );
-}
-
 
 export default App;
