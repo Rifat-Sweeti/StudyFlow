@@ -49,7 +49,7 @@ button:disabled {
   width: 58px;
   height: 58px;
   border-radius: 16px;
-  background: #48ae61;
+  background: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1788,4 +1788,5 @@ button:disabled {
 .logo {
   width: 50px;
   height: 50px;
+  background-color: #fff;
 }

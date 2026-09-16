@@ -41,7 +41,7 @@ function App() {
     return (
       <div className="loading-screen">
         <div className="loading-logo">
-          <img src="/images/logo.png" alt="StudyNest logo" />
+          <img src="images\logo.png" alt="StudyNest logo" />
         </div>
         <h2>StudyNest</h2>
         <p>Loading your workspace...</p>
