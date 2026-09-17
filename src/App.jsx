@@ -40,13 +40,7 @@ function App() {
   if (loading) {
     return (
       <div className="loading-screen">
-        <div className="loading-logo">
-          <img
-            src={`${import.meta.env.BASE_URL}images/logo.png`}
-            alt="StudyNest logo"
-          />
-        </div>
-
+        <div className="loading-logo">S</div>
         <h2>StudyNest</h2>
         <p>Loading your workspace...</p>
       </div>
@@ -155,13 +149,7 @@ function AuthPage() {
     <div className="auth-page">
       <div className="auth-left">
         <div className="auth-brand">
-          <div className="auth-logo">
-            <img
-              src={`${import.meta.env.BASE_URL}images/logo.png`}
-              alt="StudyNest logo"
-              className="logo"
-            />
-          </div>
+          <div className="auth-logo">S</div>
 
           <div>
             <h1>StudyNest</h1>
@@ -224,13 +212,7 @@ function AuthPage() {
 
       <div className="auth-right">
         <div className="auth-brand-mobile">
-          <div className="auth-mobile-logo">
-            <img
-              src={`${import.meta.env.BASE_URL}images/logo.png`}
-              alt="StudyNest logo"
-              className="logo"
-            />
-          </div>
+          <div className="auth-mobile-logo">S</div>
 
           <div>
             <h1>StudyNest</h1>
@@ -570,13 +552,7 @@ function StudyNest({ user }) {
       <aside className="sidebar">
         <div className="sidebar-top">
           <div className="brand">
-            <div className="brand-icon">
-              <img
-                src={`${import.meta.env.BASE_URL}images/logo.png`}
-                alt="StudyNest logo"
-                className="logo"
-              />
-            </div>
+            <div className="brand-icon">S</div>
 
             <div>
               <h2>StudyNest</h2>
