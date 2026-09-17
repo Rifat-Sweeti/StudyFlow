@@ -41,8 +41,12 @@ function App() {
     return (
       <div className="loading-screen">
         <div className="loading-logo">
-          <img src="images\logo.png" alt="StudyNest logo" />
+          <img
+            src={`${import.meta.env.BASE_URL}images/logo.png`}
+            alt="StudyNest logo"
+          />
         </div>
+
         <h2>StudyNest</h2>
         <p>Loading your workspace...</p>
       </div>
@@ -153,7 +157,7 @@ function AuthPage() {
         <div className="auth-brand">
           <div className="auth-logo">
             <img
-              src="images\logo.png"
+              src={`${import.meta.env.BASE_URL}images/logo.png`}
               alt="StudyNest logo"
               className="logo"
             />
@@ -194,7 +198,9 @@ function AuthPage() {
 
               <div>
                 <strong>Stay focused</strong>
-                <span>Use the focus timer to study without distractions.</span>
+                <span>
+                  Use the focus timer to study without distractions.
+                </span>
               </div>
             </div>
 
@@ -220,7 +226,7 @@ function AuthPage() {
         <div className="auth-brand-mobile">
           <div className="auth-mobile-logo">
             <img
-              src="/images/logo.png"
+              src={`${import.meta.env.BASE_URL}images/logo.png`}
               alt="StudyNest logo"
               className="logo"
             />
@@ -566,7 +572,7 @@ function StudyNest({ user }) {
           <div className="brand">
             <div className="brand-icon">
               <img
-                src="images\logo.png"
+                src={`${import.meta.env.BASE_URL}images/logo.png`}
                 alt="StudyNest logo"
                 className="logo"
               />
